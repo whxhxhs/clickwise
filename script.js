@@ -472,7 +472,7 @@ function practiceValid(items){
 }
 // Set this to your Cloudflare Worker URL after deployment, without a trailing slash.
 // Example: https://clickwise-ai.your-account.workers.dev
-const CLICKWISE_AI_WORKER_URL = "PASTE_YOUR_CLOUDFLARE_WORKER_URL_HERE";
+const CLICKWISE_AI_WORKER_URL = "https://clickwise-ai.firebreather9217.workers.dev";
 async function startPractice(mode){
  const questions=practiceFallback(mode);
  practice={questions,step:0,correct:0,answered:false,selected:null,loading:mode==="ai",source:"offline"};
