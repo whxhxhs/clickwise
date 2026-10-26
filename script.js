@@ -450,7 +450,7 @@ function practiceHome(){
  <div class="actions"><button class="btn primary" data-practice="start" data-mode="adaptive">✧ Start personalized practice</button><button class="btn subtle" data-practice="start" data-mode="mixed">Try mixed practice</button></div>
  <p class="tiny">Practice uses a curated offline question bank by default. When you run the optional AI server, you can request newly generated scenarios. No name, email, or personal details are sent to the AI service.</p></div>
  <div class="section-title"><h2>Concept tracker</h2></div><div class="practice-topics">${topicCards}</div>
- <div class="panel"><h3>Generate brand-new AI questions</h3><p class="muted">Requires the optional local server and an API key configured on the server (not in the website). If the AI service is unavailable, ClickWise automatically uses the offline practice bank.</p><button class="btn subtle" data-practice="start" data-mode="ai">✧ Generate AI practice</button></div>`);
+ <div class="panel"><h3>Generate brand-new AI questions</h3><p class="muted">Requires the Cloudflare Worker configured in script.js. If the AI service is unavailable, ClickWise automatically uses the offline practice bank.</p><button class="btn subtle" data-practice="start" data-mode="ai">✧ Generate AI practice</button></div>`);
 }
 function practiceFallback(mode){
  const ranked=topicRank(),offset=(state.practiceSessions||0);
@@ -470,16 +470,19 @@ function practiceValid(items){
   Number.isInteger(q.answer)&&q.answer>=0&&q.answer<3&&
   typeof q.explanation==="string"&&q.explanation.length>=15&&q.explanation.length<=500);
 }
+// Set this to your Cloudflare Worker URL after deployment, without a trailing slash.
+// Example: https://clickwise-ai.your-account.workers.dev
+const CLICKWISE_AI_WORKER_URL = "PASTE_YOUR_CLOUDFLARE_WORKER_URL_HERE";
 async function startPractice(mode){
  const questions=practiceFallback(mode);
  practice={questions,step:0,correct:0,answered:false,selected:null,loading:mode==="ai",source:"offline"};
  if(mode==="ai"){
-  nav(`${back("Practice Lab","practice")}<div class="panel"><h2>Generating your practice...</h2><p class="muted">Preparing safe cybersecurity scenarios. If the AI server isn't running, we'll use offline practice instead.</p><div class="progress"><div class="progress-fill" style="width:55%"></div></div></div>`);
+  nav(`${back("Practice Lab","practice")}<div class="panel"><h2>Generating your practice...</h2><p class="muted">Preparing safe cybersecurity scenarios. If AI is unavailable, we'll use offline practice instead.</p><div class="progress"><div class="progress-fill" style="width:55%"></div></div></div>`);
   try{
-   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);
    let response;
-   try{response=await fetch("/api/practice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topics:topicRank().slice(0,3)}),signal:controller.signal})}finally{clearTimeout(timer)}
-   if(!response.ok)throw Error("AI server unavailable");
+   try{response=await fetch(CLICKWISE_AI_WORKER_URL.replace(/\/$/, "")+"/api/practice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topics:topicRank().slice(0,3)}),signal:controller.signal})}finally{clearTimeout(timer)}
+   if(!response.ok)throw Error("AI service unavailable");
    const data=await response.json();
    if(!practiceValid(data.questions))throw Error("Invalid AI questions");
    practice.questions=data.questions.map(q=>({...q,source:"ai"}));practice.source="ai";
